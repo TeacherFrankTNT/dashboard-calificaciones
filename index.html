@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Calificaciones</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;min-height:100vh;padding:18px 20px;color:#1a1a1a}
+.app{max-width:100%;margin:0 auto}
+h1{font-size:20px;font-weight:700;margin-bottom:3px}
+.subtitle{font-size:13px;color:#666;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sync-btn{padding:4px 12px;font-size:11px;background:#1a5fa0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+.sync-btn:hover{background:#154d82}
+.sync-status{font-size:11px;color:#888}
+.top-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.tabs{display:flex;gap:6px}
+.tab{padding:6px 20px;border:1.5px solid #ccc;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#888;transition:all .15s}
+.tab.on{background:#1a5fa0;color:#fff;border-color:#1a5fa0}
+.search-wrap{position:relative;flex:1;min-width:220px;max-width:400px}
+.search-wrap input{width:100%;padding:9px 12px 9px 38px;border:1.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;color:#111;outline:none;transition:border .15s}
+.search-wrap input:focus{border-color:#1a5fa0}
+.sico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+.drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #ccc;border-radius:8px;z-index:30;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 14px rgba(0,0,0,.10)}
+.di{padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;color:#222}
+.di:last-child{border-bottom:none}
+.di:hover{background:#eef4ff}
+.di b{color:#1a5fa0}
+.stats-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.stat{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 16px;text-align:center;min-width:90px}
+.stat-n{font-size:20px;font-weight:700}
+.stat-l{font-size:10px;color:#888;margin-top:1px}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-head{padding:12px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px}
+.av{width:42px;height:42px;border-radius:50%;background:#d0e8ff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#1a5fa0;flex-shrink:0}
+.cname{font-size:15px;font-weight:700}
+.cgrp{font-size:11px;color:#888;margin-top:2px}
+.materias-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid #eee}
+.materia-col{border-right:1px solid #eee;display:flex;flex-direction:column}
+.materia-col:last-child{border-right:none}
+.mat-header{padding:10px 12px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid #e0e0e0}
+.mat-title{font-size:12px;font-weight:700;color:#fff;display:flex;align-items:center;gap:5px}
+.mat-final{font-size:18px;font-weight:700;margin-top:2px}
+.mat-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;display:inline-block;margin-top:2px;width:fit-content}
+.rubric-block{padding:8px 12px;border-bottom:1px solid #f0f0f0}
+.rubric-block:last-child{border-bottom:none}
+.rubric-label{font-size:10px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.acts{display:flex;flex-direction:column;gap:4px}
+.act-row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.act-name{font-size:11px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.act-grade{font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;min-width:38px;text-align:center;flex-shrink:0}
+.nc{background:#f0f0f0;color:#aaa;font-style:italic;font-weight:600}
+.hi{background:#d4f5e5;color:#0a6e4a}
+.mid{background:#d6eaff;color:#185FA5}
+.lo{background:#fff3cc;color:#854F0B}
+.fail{background:#fde8e8;color:#A32D2D}
+.loading{text-align:center;padding:50px 20px;color:#555;font-size:14px}
+.spinner{display:inline-block;width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:#1a5fa0;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:#fde8e8;border:1px solid #f5c6cb;border-radius:10px;padding:16px 20px;color:#A32D2D;font-size:13px;line-height:1.6}
+.error-box button{margin-top:10px;padding:6px 16px;background:#1a5fa0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+.empty{text-align:center;padding:48px 20px;color:#aaa;font-size:14px}
+.eico{font-size:36px;margin-bottom:8px}
+@media(max-width:900px){.materias-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.materias-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>📊 Dashboard de Calificaciones</h1>
+  <div class="subtitle">
+    Conectado en tiempo real a Google Sheets
+    <button class="sync-btn" onclick="loadAll()">🔄 Sincronizar</button>
+    <span class="sync-status" id="syncStatus"></span>
+  </div>
+
+  <div id="loadingArea" class="loading">
+    <div><div class="spinner"></div></div>
+    Cargando datos desde Google Sheets...
+  </div>
+
+  <div id="mainArea" style="display:none">
+    <div class="top-row">
+      <div class="tabs">
+        <div class="tab on" onclick="setG('2A',this)">2°A</div>
+        <div class="tab" onclick="setG('8B',this)">8°B</div>
+      </div>
+      <div class="search-wrap">
+        <span class="sico">🔍</span>
+        <input type="text" id="inp" placeholder="Buscar alumno por nombre..." oninput="onInp()" onkeydown="onKey(event)" autocomplete="off"/>
+        <div class="drop" id="drop"></div>
+      </div>
+    </div>
+    <div id="statsRow" class="stats-row"></div>
+    <div id="res">
+      <div class="card"><div class="empty"><div class="eico">📋</div>Busca un alumno para ver su reporte completo</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── URLs CSV por pestaña (publicadas en la web) ───────────────────────────────
+const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRNsBAX1IuUfUdgfoT6f_uat_8KmPrLv8ZTEAuVgN414JvTlgR1M4UhX4r-G9J0xw/pub?output=csv&gid=';
+
+const GIDS = {
+  '2A_HWPT':     '720611357',
+  '2A_RICHMOND': '1448832480',
+  '2A_LIBRARY':  '704373194',
+  '8B_HWPT':     '675862050',
+  '8B_RICHMOND': '431761990',
+  '8B_LIBRARY':  '813071306',
+};
+
+// ── ESTADO ────────────────────────────────────────────────────────────────────
+let DB = { '2A': [], '8B': [] };
+let g = '2A', lst = [];
+
+// ── FETCH CSV ─────────────────────────────────────────────────────────────────
+async function fetchCSV(gid) {
+  const url = BASE + gid + '&t=' + Date.now(); // cache-bust
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return parseCSV(text);
+}
+
+function parseCSV(text) {
+  return text.trim().split('\n').map(line => {
+    const cols = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function num(v) {
+  if (!v || v === '' || v === '-') return null;
+  const clean = v.replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(clean);
+  return isNaN(n) ? null : n;
+}
+
+function cleanName(s) {
+  return (s || '').replace(/"/g,'').trim().toUpperCase();
+}
+
+function tc(s) {
+  return (s || '').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+// ── ENCONTRAR FILA DE DATOS ───────────────────────────────────────────────────
+// Busca la fila donde empieza la numeración de alumnos (col 0 = "1", "2", etc.)
+function findDataStart(rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const v = (rows[i][0] || '').trim();
+    if (v === '1' || v === '01') return i;
+  }
+  return 3; // fallback
+}
+
+// ── ENCONTRAR COLUMNAS POR HEADER ─────────────────────────────────────────────
+function findCols(rows, keywords) {
+  // Busca en las primeras 5 filas los headers
+  for (let r = 0; r < Math.min(5, rows.length); r++) {
+    for (let c = 0; c < rows[r].length; c++) {
+      const cell = (rows[r][c] || '').toUpperCase().trim();
+      for (const kw of keywords) {
+        if (cell.includes(kw.toUpperCase())) return { row: r, col: c };
+      }
+    }
+  }
+  return null;
+}
+
+// ── PARSE HWPT ────────────────────────────────────────────────────────────────
+// Detecta dinámicamente columnas buscando headers H1, H2... P1, P2... y calificación final
+function parseHWPT(rows, ecMax) {
+  const students = [];
+  const dataStart = findDataStart(rows);
+
+  // Buscar fila de headers (la anterior a dataStart)
+  let headerRow = null;
+  for (let r = 0; r < dataStart; r++) {
+    const row = rows[r];
+    // Buscar H1 o P1 en esta fila
+    const hasH1 = row.some(c => /^H\s*1$|^HW\s*1$/i.test((c||'').trim()));
+    const hasP1 = row.some(c => /^P\s*1$|^PT\s*1$/i.test((c||'').trim()));
+    if (hasH1 || hasP1) { headerRow = r; break; }
+  }
+
+  // Si no encontramos headerRow, usar fila 2 (index 2)
+  if (headerRow === null) headerRow = dataStart > 2 ? dataStart - 1 : 2;
+
+  const headers = rows[headerRow] || [];
+
+  // Mapear columnas por nombre
+  const laHW = {}, laPT = {}, ecHW = {}, ecPT = {};
+  let laFinalCol = -1, ecFinalCol = -1;
+  let laSection = false, ecSection = false;
+  let laFinalFound = false, ecFinalFound = false;
+
+  // Buscar sección LA y EC en filas anteriores al header
+  let laStart = -1, ecStart = -1;
+  for (let r = 0; r < dataStart; r++) {
+    const row = rows[r];
+    for (let c = 0; c < row.length; c++) {
+      const cell = (row[c] || '').toUpperCase().trim();
+      if (cell.includes('LANGUAGE') || cell.includes('LANG. ARTS') || cell.includes('L.A')) {
+        if (laStart === -1) laStart = c;
+      }
+      if ((cell.includes('ENGLISH') && cell.includes('CONV')) || cell.includes('E.C') || cell === 'EC') {
+        if (ecStart === -1) ecStart = c;
+      }
+    }
+  }
+
+  // Mapear headers
+  for (let c = 0; c < headers.length; c++) {
+    const h = (headers[c] || '').trim();
+    const hUP = h.toUpperCase();
+
+    // LA HW
+    if (/^H\s*\d+$/.test(h) && (laStart === -1 || c >= laStart) && (ecStart === -1 || c < ecStart)) {
+      const num_match = h.match(/\d+/);
+      if (num_match) laHW['H' + num_match[0]] = c;
+    }
+    // LA PT
+    if (/^P\s*\d+$/.test(h) && (laStart === -1 || c >= laStart) && (ecStart === -1 || c < ecStart) && !laFinalFound) {
+      const num_match = h.match(/\d+/);
+      if (num_match) laPT['P' + num_match[0]] = c;
+    }
+    // EC HW — después de ecStart
+    if (/^H\s*\d+$/.test(h) && ecStart !== -1 && c >= ecStart) {
+      const num_match = h.match(/\d+/);
+      if (num_match) ecHW['H' + num_match[0]] = c;
+    }
+    // EC PT
+    if (/^P\s*\d+$/.test(h) && ecStart !== -1 && c >= ecStart) {
+      const num_match = h.match(/\d+/);
+      if (num_match) ecPT['P' + num_match[0]] = c;
+    }
+    // Finals — buscar celdas que digan "CALIF" o "FINAL" o "PROM"
+    if ((hUP.includes('CALIF') || hUP.includes('FINAL') || hUP.includes('PROM') || hUP === 'C.F' || hUP === 'CF') ) {
+      if (ecStart === -1 || c < ecStart) {
+        if (laFinalCol === -1) laFinalCol = c;
+      } else {
+        if (ecFinalCol === -1) ecFinalCol = c;
+      }
+    }
+  }
+
+  // Fallback: si no detectó columnas, usar índices fijos basados en estructura conocida
+  if (Object.keys(laHW).length === 0) {
+    laHW  = { H1:2, H2:3, H3:4, H4:5, H5:6 };
+    laPT  = { P1:11, P2:12, P3:13, P4:14, P5:15 };
+    laFinalCol = 20;
+    ecHW  = { H1:25, H2:26, H3:27 };
+    ecPT  = { P1:34, P2:35, P3:36, P4:37 };
+    ecFinalCol = 43;
+  }
+
+  // Parsear alumnos
+  for (let i = dataStart; i < rows.length; i++) {
+    const r = rows[i];
+    const rol = (r[0] || '').trim();
+    if (!rol.match(/^\d+$/) || parseInt(rol) < 1 || parseInt(rol) > 50) continue;
+    const name = cleanName(r[1]);
+    if (!name || name.length < 3) continue;
+
+    const laHWdata = {}, laPTdata = {}, ecHWdata = {}, ecPTdata = {};
+    for (const [k,c] of Object.entries(laHW)) laHWdata[k] = num(r[c]);
+    for (const [k,c] of Object.entries(laPT)) laPTdata[k] = num(r[c]);
+    for (const [k,c] of Object.entries(ecHW)) ecHWdata[k] = num(r[c]);
+    for (const [k,c] of Object.entries(ecPT)) ecPTdata[k] = num(r[c]);
+
+    students.push({
+      n: name,
+      la: { hw: laHWdata, pt: laPTdata, final: laFinalCol >= 0 ? num(r[laFinalCol]) : null },
+      ec: { hw: ecHWdata, pt: ecPTdata, final: ecFinalCol >= 0 ? num(r[ecFinalCol]) : null }
+    });
+  }
+  return students;
+}
+
+// ── PARSE RICHMOND ────────────────────────────────────────────────────────────
+function parseRichmond(rows) {
+  const map = {};
+  const dataStart = findDataStart(rows);
+  const headers = rows[dataStart > 0 ? dataStart - 1 : 0] || [];
+
+  // Detectar columnas T3.x, P3.x, y final
+  const hwCols = {}, ptCols = {};
+  let finalCol = -1;
+
+  for (let c = 0; c < headers.length; c++) {
+    const h = (headers[c] || '').trim().toUpperCase();
+    const hwM = h.match(/T\s*3[\.\-]?\s*(\d+)/i) || h.match(/HW\s*3[\.\-]?\s*(\d+)/i) || h.match(/TAREA\s*3[\.\-]?\s*(\d+)/i);
+    const ptM = h.match(/P\s*3[\.\-]?\s*(\d+)/i) || h.match(/PART\s*3[\.\-]?\s*(\d+)/i);
+    if (hwM) hwCols['T3.' + hwM[1]] = c;
+    if (ptM) ptCols['P3.' + ptM[1]] = c;
+    if (h.includes('CALIF') || h.includes('FINAL') || h === 'CF' || h === 'C.F') {
+      if (finalCol === -1) finalCol = c;
+    }
+  }
+
+  // Fallback índices fijos
+  if (Object.keys(hwCols).length === 0) {
+    hwCols = { 'T3.1': 2, 'T3.2': 3, 'T3.3': 4 };
+    ptCols = { 'P3.1': 8, 'P3.2': 9, 'P3.3': 10 };
+    finalCol = 15;
+  }
+
+  for (let i = dataStart; i < rows.length; i++) {
+    const r = rows[i];
+    const rol = (r[0] || '').trim();
+    if (!rol.match(/^\d+$/) || parseInt(rol) < 1 || parseInt(rol) > 50) continue;
+    const name = cleanName(r[1]);
+    if (!name || name.length < 3) continue;
+
+    const hw = {}, pt = {};
+    for (const [k,c] of Object.entries(hwCols)) hw[k] = num(r[c]);
+    for (const [k,c] of Object.entries(ptCols)) pt[k] = num(r[c]);
+
+    map[name] = { hw, pt, final: finalCol >= 0 ? num(r[finalCol]) : null };
+  }
+  return map;
+}
+
+// ── PARSE LIBRARY ─────────────────────────────────────────────────────────────
+function parseLibrary(rows) {
+  const map = {};
+  const dataStart = findDataStart(rows);
+  const headers = rows[dataStart > 0 ? dataStart - 1 : 0] || [];
+
+  const hwCols = {};
+  let finalCol = -1;
+
+  for (let c = 0; c < headers.length; c++) {
+    const h = (headers[c] || '').trim().toUpperCase();
+    const lM = h.match(/L\s*3[\.\-]?\s*(\d+)/i) || h.match(/LEC\w*\s*3[\.\-]?\s*(\d+)/i) || h.match(/R\s*3[\.\-]?\s*(\d+)/i);
+    if (lM) hwCols['L3.' + lM[1]] = c;
+    if (h.includes('CALIF') || h.includes('FINAL') || h === 'CF' || h === 'C.F') {
+      if (finalCol === -1) finalCol = c;
+    }
+  }
+
+  if (Object.keys(hwCols).length === 0) {
+    hwCols = { 'L3.1': 2, 'L3.2': 3, 'L3.3': 4 };
+    finalCol = 8;
+  }
+
+  for (let i = dataStart; i < rows.length; i++) {
+    const r = rows[i];
+    const rol = (r[0] || '').trim();
+    if (!rol.match(/^\d+$/) || parseInt(rol) < 1 || parseInt(rol) > 50) continue;
+    const name = cleanName(r[1]);
+    if (!name || name.length < 3) continue;
+
+    const hw = {};
+    for (const [k,c] of Object.entries(hwCols)) hw[k] = num(r[c]);
+
+    // Buscar final: última columna numérica si no se encontró header
+    let final = finalCol >= 0 ? num(r[finalCol]) : null;
+    if (final === null) {
+      for (let c = r.length - 1; c >= 4; c--) {
+        const v = num(r[c]);
+        if (v !== null) { final = v; break; }
+      }
+    }
+
+    map[name] = { hw, final };
+  }
+  return map;
+}
+
+// ── MERGE ─────────────────────────────────────────────────────────────────────
+function matchName(name, mapKeys) {
+  // Exact match
+  if (mapKeys.includes(name)) return name;
+  // Partial match — find key with most words in common
+  const words = name.split(' ').filter(w => w.length > 2);
+  let best = null, bestScore = 0;
+  for (const k of mapKeys) {
+    const kWords = k.split(' ').filter(w => w.length > 2);
+    const common = words.filter(w => kWords.includes(w)).length;
+    if (common > bestScore) { bestScore = common; best = k; }
+  }
+  return bestScore >= 2 ? best : null;
+}
+
+function mergeStudents(students, richmondMap, libraryMap) {
+  const richKeys = Object.keys(richmondMap);
+  const libKeys  = Object.keys(libraryMap);
+  return students.map(s => {
+    const rKey = matchName(s.n, richKeys);
+    const lKey = matchName(s.n, libKeys);
+    return {
+      n:   s.n,
+      la:  s.la,
+      ec:  s.ec,
+      plt: rKey ? richmondMap[rKey] : { hw: {}, pt: {}, final: null },
+      lib: lKey ? libraryMap[lKey]  : { hw: {}, final: null }
+    };
+  });
+}
+
+// ── LOAD ALL ──────────────────────────────────────────────────────────────────
+async function loadAll() {
+  document.getElementById('loadingArea').style.display = 'block';
+  document.getElementById('mainArea').style.display = 'none';
+  document.getElementById('syncStatus').textContent = '';
+
+  try {
+    const [r2A_hw, r2A_ri, r2A_li, r8B_hw, r8B_ri, r8B_li] = await Promise.all([
+      fetchCSV(GIDS['2A_HWPT']),
+      fetchCSV(GIDS['2A_RICHMOND']),
+      fetchCSV(GIDS['2A_LIBRARY']),
+      fetchCSV(GIDS['8B_HWPT']),
+      fetchCSV(GIDS['8B_RICHMOND']),
+      fetchCSV(GIDS['8B_LIBRARY']),
+    ]);
+
+    const s2A = parseHWPT(r2A_hw);
+    DB['2A']  = mergeStudents(s2A, parseRichmond(r2A_ri), parseLibrary(r2A_li));
+
+    const s8B = parseHWPT(r8B_hw);
+    DB['8B']  = mergeStudents(s8B, parseRichmond(r8B_ri), parseLibrary(r8B_li));
+
+    lst = DB[g];
+
+    const now = new Date();
+    document.getElementById('syncStatus').textContent =
+      `✅ Actualizado ${now.toLocaleDateString('es-MX')} ${now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
+    document.getElementById('loadingArea').style.display = 'none';
+    document.getElementById('mainArea').style.display = 'block';
+    renderStats();
+
+  } catch(e) {
+    document.getElementById('loadingArea').innerHTML = `
+      <div class="error-box">
+        ⚠️ <b>Error al conectar con Google Sheets.</b><br>
+        Verifica que el archivo esté publicado en la web (Archivo → Compartir → Publicar en la web).<br><br>
+        <small>Detalle: ${e.message}</small><br>
+        <button onclick="loadAll()">🔄 Reintentar</button>
+      </div>`;
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function gc(v, max) {
+  if (v === null || v === undefined) return null;
+  const n = (v / max) * 10;
+  if (n >= 9)  return { c:'#0a6e4a', bg:'#d4f5e5', badge:'Excelente', cls:'hi' };
+  if (n >= 7)  return { c:'#185FA5', bg:'#d6eaff', badge:'Bien',      cls:'mid' };
+  if (n >= 6)  return { c:'#854F0B', bg:'#fff3cc', badge:'Regular',   cls:'lo' };
+  return             { c:'#A32D2D', bg:'#fde8e8', badge:'Bajo',      cls:'fail' };
+}
+
+function gradePill(v) {
+  if (v === null || v === undefined) return '<span class="act-grade nc">NC</span>';
+  const info = gc(v, 10);
+  return `<span class="act-grade ${info.cls}">${v.toFixed(1)}</span>`;
+}
+
+function renderStats() {
+  if (!lst.length) return;
+  const norms = lst.map(s => {
+    const v = [];
+    if (s.la.final  != null) v.push(s.la.final);
+    if (s.ec.final  != null) v.push((s.ec.final / 4) * 10);
+    if (s.plt.final != null) v.push(s.plt.final);
+    if (s.lib.final != null) v.push(s.lib.final);
+    return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
+  });
+  const avg = (norms.reduce((a,b)=>a+b,0)/norms.length).toFixed(1);
+  const hi  = norms.filter(x=>x>=9).length;
+  const lo  = norms.filter(x=>x<6).length;
+  document.getElementById('statsRow').innerHTML =
+    `<div class="stat"><div class="stat-n">${lst.length}</div><div class="stat-l">Alumnos</div></div>
+     <div class="stat"><div class="stat-n">${avg}</div><div class="stat-l">Prom. grupo</div></div>
+     <div class="stat"><div class="stat-n" style="color:#0a6e4a">${hi}</div><div class="stat-l">Con 9 o más</div></div>
+     <div class="stat"><div class="stat-n" style="color:#A32D2D">${lo}</div><div class="stat-l">Bajo 6</div></div>`;
+}
+
+// ── BUSCADOR ──────────────────────────────────────────────────────────────────
+function setG(gg, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on'); g = gg; lst = DB[gg];
+  document.getElementById('inp').value = '';
+  document.getElementById('drop').style.display = 'none';
+  document.getElementById('res').innerHTML = '<div class="card"><div class="empty"><div class="eico">📋</div>Busca un alumno para ver su reporte completo</div></div>';
+  renderStats();
+}
+
+function onInp() {
+  const q = document.getElementById('inp').value.trim().toUpperCase();
+  const drop = document.getElementById('drop');
+  if (q.length < 2) { drop.style.display='none'; return; }
+  const m = lst.filter(s => s.n.includes(q));
+  if (!m.length) { drop.style.display='none'; return; }
+  drop.innerHTML = m.slice(0,10).map(s => {
+    const hl = tc(s.n).replace(new RegExp(tc(q),'gi'), x=>`<b>${x}</b>`);
+    return `<div class="di" onclick="pick('${s.n.replace(/'/g,"\\'")}')">${hl}</div>`;
+  }).join('');
+  drop.style.display = 'block';
+}
+
+function onKey(e) {
+  if (e.key==='Enter') { const q=document.getElementById('inp').value.trim().toUpperCase(); const m=lst.find(s=>s.n.includes(q)); if(m) pick(m.n); }
+  if (e.key==='Escape') document.getElementById('drop').style.display='none';
+}
+document.addEventListener('click', e=>{ if(!e.target.closest('.search-wrap')) document.getElementById('drop').style.display='none'; });
+
+function pick(name) {
+  document.getElementById('inp').value = tc(name);
+  document.getElementById('drop').style.display = 'none';
+  show(name);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function matCol(icon, title, finalVal, max, rubrics, headerBg) {
+  const fDisp = finalVal != null ? finalVal.toFixed(2) : 'NC';
+  const info  = finalVal != null ? gc(finalVal, max) : {c:'#aaa',bg:'#e8e8e8',badge:'Sin datos'};
+  const maxLbl = max === 4 ? '/ 4 pts' : '/ 10';
+
+  let rubricsHTML = '';
+  for (const [label, items] of Object.entries(rubrics)) {
+    if (!items || !Object.keys(items).length) continue;
+    const rows = Object.entries(items).map(([k,v]) =>
+      `<div class="act-row"><span class="act-name" title="${k}">${k}</span>${gradePill(v)}</div>`
+    ).join('');
+    rubricsHTML += `<div class="rubric-block"><div class="rubric-label">${label}</div><div class="acts">${rows}</div></div>`;
+  }
+
+  return `
+  <div class="materia-col">
+    <div class="mat-header" style="background:${headerBg}">
+      <div class="mat-title">${icon} ${title}</div>
+      <div class="mat-final" style="color:${info.c}">${fDisp} <span style="font-size:11px;font-weight:400">${maxLbl}</span></div>
+      <div class="mat-badge" style="background:${info.bg};color:${info.c}">${info.badge}</div>
+    </div>
+    ${rubricsHTML || '<div class="rubric-block" style="color:#aaa;font-size:12px">Sin datos</div>'}
+  </div>`;
+}
+
+function show(name) {
+  const s = lst.find(x => x.n === name);
+  if (!s) return;
+  const init = name.split(' ').slice(0,2).map(w=>w[0]).join('');
+  const grpL = g==='2A' ? '2°A' : '8°B';
+
+  document.getElementById('res').innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="av">${init}</div>
+        <div><div class="cname">${tc(name)}</div><div class="cgrp">Grupo ${grpL}</div></div>
+      </div>
+      <div class="materias-grid">
+        ${matCol('📖','Language Arts',  s.la.final,  10, {'📝 Tareas':s.la.hw,  '🙋 Participación':s.la.pt},  '#1a5fa0')}
+        ${matCol('💬','English Conv.',  s.ec.final,  4,  {'📝 Tareas':s.ec.hw,  '🙋 Participación':s.ec.pt},  '#0e7c4a')}
+        ${matCol('💻','Platform',       s.plt.final, 10, {'📝 Tareas':s.plt.hw, '🙋 Participación':s.plt.pt}, '#7B3FA0')}
+        ${matCol('📚','Library',        s.lib.final, 10, {'📚 Lecturas':s.lib.hw},                             '#C45000')}
+      </div>
+    </div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadAll();
+</script>
+</body>
+</html>
